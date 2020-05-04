@@ -19,12 +19,12 @@ def default_json_converter(obj):
         return obj.__str__()
     return None
 
-# Credits to Liam Kennedy
-# https://stackoverflow.com/questions/19759501/calculating-the-phase-angle-\
-# between-the-sun-iss-and-an-observer-on-the-earth
-
 
 def get_magnitude(light_source, target):
+    # Credits to Liam Kennedy
+    # https://stackoverflow.com/questions/19759501/calculating-the-phase-angle-\
+    # between-the-sun-iss-and-an-observer-on-the-earth
+
     a = light_source.earth_distance * AU_IN_KM - ephem.earth_radius
     b = target.range / 1000
     angle_c = ephem.separation(
@@ -35,6 +35,37 @@ def get_magnitude(light_source, target):
         (math.pow(b, 2) + math.pow(c, 2) - math.pow(a, 2)) / (2 * b * c))
     return -1.3 - 15 + 5 * math.log10(target.range / 1000) - 2.5 * math.log10(
         math.sin(angle_a)+((math.pi-angle_a)*math.cos(angle_a)))
+
+
+def pass_not_visible(start_time, end_time, light_source, target):
+    all_pass_events = generate_events_list(
+        start_time, end_time, light_source, target, step=1)
+    result = list(
+        map(lambda event: not event['eclipsed'] and event['magnitude']
+            < MAXIMUM_VISIBLE_MAGNITUDE, all_pass_events)
+    )
+    return True not in result
+
+
+def generate_events_list(start_time, end_time, light_source, target, step):
+    times = []
+    # We set the current time to the very first beginning of the pass
+    current_time = start_time.datetime()
+
+    # Loop from the very beginning to the very last moment of the event
+    while current_time < end_time.datetime():
+        times.append(current_time)
+        current_time = current_time + datetime.timedelta(0, step)
+
+    events_list = []
+
+    # For every intervalle of time from the start to the end of the event,
+    # get ISS information
+    for time in times:
+        event = generate_event(time, target, light_source)
+        events_list.append(event)
+
+    return events_list
 
 
 def generate_event(event_time, target, light_source):
@@ -94,12 +125,7 @@ while not rendered_next_visible:
     # We check if the pass is visible or not: ISS eclipsed or magnitude not high
     # enough
 
-    # FIXME: this is not good because sometimes the ISS enters or leaves Earth's
-    # shadow before or after being at its maximum altitude.
-    # For instance: https://heavens-above.com/passdetails.aspx?lat=48.8638\
-    # &lng=2.4485&alt=97&tz=UCT&satid=25544&mjd=58974.0759329665
-
-    if iss.eclipsed or mag > MAXIMUM_VISIBLE_MAGNITUDE:
+    if pass_not_visible(rise_time, set_time, sun, iss):
         # The pass is not visible, we set the current date to right after the
         # pass is finished to get a new one from the loop
         obs.date = set_time.datetime()
@@ -109,22 +135,8 @@ while not rendered_next_visible:
 
     rendered_next_visible = True
 
-    times = []
-    # We set the current time to the very first beginning of the pass
-    current_time = rise_time.datetime()
-
-    # Loop from the very beginning to the very last moment of the event
-    while current_time < set_time.datetime():
-        times.append(current_time)
-        current_time = current_time + datetime.timedelta(0, int(args.step))
-
-    events_list = []
-
-    # For every intervalle of time from the start to the end of the event,
-    # get ISS information
-    for time in times:
-        event = generate_event(time, iss, sun)
-        events_list.append(event)
+    events = generate_events_list(
+        rise_time, set_time, sun, iss, step=int(args.step))
 
     dumps = json.dumps({
         'longitude': obs.long,
@@ -133,12 +145,12 @@ while not rendered_next_visible:
         'pressure': obs.pressure,
         'main_events': {
             'rise': generate_event(rise_time.datetime(), iss, sun),
-            # PAS BON À VÉRIFIER
+            # CHECK THIS VALUE, NOT SURE IF CORRECT
             'maximum': generate_event(
                 maximum_altitude_time.datetime(), iss, sun),
             'set': generate_event(set_time.datetime(), iss, sun)
         },
-        'events': events_list
+        'events': events
     }, indent=2, default=default_json_converter)
 
     print(dumps)
