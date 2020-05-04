@@ -1,7 +1,7 @@
 [MASTER]
 
 ignored-classes=ephem
-max-line-length=80
+max-line-length=100
 disable=
     missing-module-docstring,
     missing-class-docstring,

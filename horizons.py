@@ -1,11 +1,13 @@
 from astroquery.jplhorizons import Horizons
 
-obj = Horizons(id='599', location='500', id_type='majorbody', epochs={
-    'start': '2020-05-05 17:00',
-    'stop': '2020-05-05 17:01',
-    'step': '1h'})
+obj = Horizons(
+    id="599",
+    location="500",
+    id_type="majorbody",
+    epochs={"start": "2020-05-05 17:00", "stop": "2020-05-05 17:01", "step": "1h"},
+)
 
-eph = obj.ephemerides(quantities='19,20,22')
+eph = obj.ephemerides(quantities="19,20,22")
 
 print(obj.uri)
 print()
