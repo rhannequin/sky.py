@@ -7,8 +7,7 @@ A few Python scripts to request space-oriented data.
 ### Usage
 
 ```sh
-$ python iss.py --latitude YY.YYY --longitude XX.XXX \
---elevation ZZ --pressure B --horizon mm:ss --step 60
+$ python iss.py --latitude YY.YYY --longitude XX.XXX --elevation ZZ --pressure B --horizon mm:ss --step 60
 ```
 
 - `latitude`: angle in degrees between `-90` and `90`
@@ -25,8 +24,7 @@ $ python iss.py --latitude YY.YYY --longitude XX.XXX \
 See [Horizons](https://ssd.jpl.nasa.gov/?horizons_doc)'s documentation for target and location ids.
 
 ```sh
-$ python horizons.py --target 599 --target-type majorbody \
---location 500 --time "2020-05-06 17:00:00"
+$ python horizons.py --target 599 --target-type majorbody --location 500 --time "2020-05-06 17:00:00"
 ```
 
 - `target`: body's ID to observe
