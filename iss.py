@@ -5,7 +5,7 @@
 # --pressure 0 --horizon 00:00 --step 60
 
 import argparse
-import datetime
+from datetime import datetime, timedelta
 import json
 import math
 import ephem
@@ -15,7 +15,7 @@ MAXIMUM_VISIBLE_MAGNITUDE = -0.5
 
 
 def default_json_converter(obj):
-    if isinstance(obj, datetime.datetime):
+    if isinstance(obj, datetime):
         return obj.__str__()
     return None
 
@@ -57,7 +57,7 @@ def generate_events_list(start_time, end_time, light_source, target, step):
     # Loop from the very beginning to the very last moment of the event
     while current_time < end_time.datetime():
         times.append(current_time)
-        current_time = current_time + datetime.timedelta(0, step)
+        current_time = current_time + timedelta(0, step)
 
     events_list = []
 
