@@ -31,3 +31,16 @@ $ python horizons.py --target 599 --target-type majorbody --location 500 --time 
 - `target-type`: body's type
 - `location`: location's ID
 - `time`: datetime of ephemeris
+
+## Moon ephemeris
+
+### Usage
+
+```sh
+$ python moon.py --latitude 48.8638 --longitude 2.4485 --elevation 97 --datetime "2020-05-11 14:00:00"
+```
+
+- `latitude`: angle in degrees between `-90` and `90`
+- `longitude`: angle in degrees between `-90` and `90`
+- `elevation`: distance in meters from sea level
+- `datetime`: datetime of ephemeris in UTC
