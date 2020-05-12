@@ -142,3 +142,13 @@ cython_debug/
 
 # VS Code
 .vscode/
+
+# Skyfield data files
+*.bpc
+*.bsp
+*.dat
+*.data
+*.delta
+*.preds
+*.tf
+*.tpc
