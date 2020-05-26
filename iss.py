@@ -5,19 +5,14 @@
 # --pressure 0 --horizon 00:00 --step 60
 
 import argparse
-from datetime import datetime, timedelta
+from datetime import timedelta
 import json
 import math
 import ephem
+from utils.json_converter import json_converter
 
 AU_IN_KM = 149597871
 MAXIMUM_VISIBLE_MAGNITUDE = -0.5
-
-
-def default_json_converter(obj):
-    if isinstance(obj, datetime):
-        return obj.__str__()
-    return None
 
 
 def get_magnitude(light_source, target):
@@ -154,7 +149,7 @@ while not rendered_next_visible:
             "events": events,
         },
         indent=2,
-        default=default_json_converter,
+        default=json_converter,
     )
 
     print(dumps)

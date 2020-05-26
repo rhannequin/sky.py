@@ -8,15 +8,10 @@ import datetime as dt
 import json
 from skyfield import almanac
 from skyfield.api import Topos, load
+from utils.json_converter import json_converter
 
 DATE_FORMAT = "%Y-%m-%d"
 COORDINATES_PRECISION = 4
-
-
-def default_json_converter(obj):
-    if isinstance(obj, dt.datetime):
-        return obj.__str__()
-    return None
 
 
 arg_parser = argparse.ArgumentParser()
@@ -53,7 +48,7 @@ for t, e in zip(times, events):
     twilight_events.append({"time": time, "name": name})
 
 dumps = json.dumps(
-    {"events": twilight_events}, indent=2, default=default_json_converter, ensure_ascii=False,
+    {"events": twilight_events}, indent=2, default=json_converter, ensure_ascii=False,
 )
 
 print(dumps)

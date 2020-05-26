@@ -7,9 +7,9 @@
 import argparse
 from datetime import datetime, timedelta
 import json
-
 from skyfield.api import Topos, load, utc
 from skyfield import almanac
+from utils.json_converter import json_converter
 
 DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 COORDINATES_PRECISION = 4
@@ -146,7 +146,7 @@ dumps = json.dumps(
         "phases": moon_phases,
     },
     indent=2,
-    default=default_json_converter,
+    default=json_converter,
     ensure_ascii=False,
 )
 

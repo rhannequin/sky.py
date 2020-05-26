@@ -9,17 +9,12 @@ from datetime import datetime, timedelta
 import json
 import math
 from astroquery.jplhorizons import Horizons
+from utils.json_converter import json_converter
 
 
 AU_IN_M = 149597870700
 DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 DEFAULT_STEP = "1m"
-
-
-def default_json_converter(obj):
-    if isinstance(obj, datetime):
-        return obj.__str__()
-    return None
 
 
 arg_parser = argparse.ArgumentParser()
@@ -55,7 +50,7 @@ dumps = json.dumps(
         },
     },
     indent=2,
-    default=default_json_converter,
+    default=json_converter,
 )
 
 print(dumps)
