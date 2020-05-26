@@ -20,10 +20,37 @@ APPROXIMATIVE_MOON_REVOLUTION_DAYS = 30
 NEW_MOON_IDENTIFIER = 0
 
 
-def default_json_converter(obj):
-    if isinstance(obj, datetime):
-        return obj.__str__()
-    return None
+def detailled_coordinates(right_ascension, declination, elevation, azimuth, distance):
+    return {
+        "right_ascension": {
+            "hms": {"value": right_ascension.hstr(), "unit": None},
+            "dms": {"value": right_ascension.dstr(warn=False), "unit": None},
+            "deg": {"value": right_ascension._degrees, "unit": DEGREE_SYMBOL},
+            "rad": {"value": right_ascension.radians, "unit": RADIAN_SYMBOL},
+        },
+        "declination": {
+            "hms": {"value": declination.hstr(warn=False), "unit": None},
+            "dms": {"value": declination.dstr(), "unit": None},
+            "deg": {"value": declination._degrees, "unit": DEGREE_SYMBOL},
+            "rad": {"value": declination.radians, "unit": RADIAN_SYMBOL},
+        },
+        "elevation": {
+            "hms": {"value": elevation.hstr(warn=False), "unit": None},
+            "dms": {"value": elevation.dstr(), "unit": None},
+            "deg": {"value": elevation._degrees, "unit": DEGREE_SYMBOL},
+            "rad": {"value": elevation.radians, "unit": RADIAN_SYMBOL},
+        },
+        "azimuth": {
+            "hms": {"value": azimuth.hstr(warn=False), "unit": None},
+            "dms": {"value": azimuth.dstr(), "unit": None},
+            "deg": {"value": azimuth._degrees, "unit": DEGREE_SYMBOL},
+            "rad": {"value": azimuth.radians, "unit": RADIAN_SYMBOL},
+        },
+        "distance": {
+            "au": {"value": distance.au, "unit": "au"},
+            "m": {"value": distance.m, "unit": "m"},
+        },
+    }
 
 
 arg_parser = argparse.ArgumentParser()
@@ -33,31 +60,34 @@ arg_parser.add_argument("--elevation")
 arg_parser.add_argument("--datetime")
 args = arg_parser.parse_args()
 
-ts = load.timescale(builtin=True)
-obersation_time = datetime.strptime(args.datetime, DATETIME_FORMAT).replace(tzinfo=utc)
-t = ts.utc(obersation_time)
+timescale = load.timescale(builtin=True)
+observation_datetime = datetime.strptime(args.datetime, DATETIME_FORMAT).replace(tzinfo=utc)
+observation_time = timescale.utc(observation_datetime)
 
 eph = load("de421.bsp")
 sun, earth, moon = eph["sun"], eph["earth"], eph["moon"]
 
-observer_location = earth + Topos(
+observer_topos = Topos(
     latitude_degrees=round(float(args.latitude), COORDINATES_PRECISION),
     longitude_degrees=round(float(args.longitude), COORDINATES_PRECISION),
     elevation_m=int(args.elevation),
 )
-position = observer_location.at(t)
-apparent_observation = observer_location.at(t).observe(moon).apparent()
+observer_location = earth + observer_topos
+position = observer_location.at(observation_time)
+apparent_observation = observer_location.at(observation_time).observe(moon).apparent()
 
 
 # Coordinates
 
-ra, dec, distance = apparent_observation.radec()
+ra, dec, dist = apparent_observation.radec()
 alt, az, _ = apparent_observation.altaz()
 
 
 # Current phase
 
-_, sun_ecliptic_longitude, _ = observer_location.at(t).observe(sun).apparent().ecliptic_latlon()
+_, sun_ecliptic_longitude, _ = (
+    observer_location.at(observation_time).observe(sun).apparent().ecliptic_latlon()
+)
 _, moon_ecliptic_latitude, _ = apparent_observation.ecliptic_latlon()
 current_phase = (
     moon_ecliptic_latitude.degrees - sun_ecliptic_longitude.degrees
@@ -66,12 +96,12 @@ current_phase = (
 
 # Phases
 
-observation_date = datetime.strptime(args.datetime, DATETIME_FORMAT).replace(tzinfo=utc)
-phrase_start_date = observation_date - timedelta(days=APPROXIMATIVE_MOON_REVOLUTION_DAYS)
-phrase_end_date = observation_date + timedelta(days=APPROXIMATIVE_MOON_REVOLUTION_DAYS)
-observation_time = ts.utc(observation_date.year, observation_date.month, observation_date.day)
-phrase_start_time = ts.utc(phrase_start_date.year, phrase_start_date.month, phrase_start_date.day)
-phrase_end_time = ts.utc(phrase_end_date.year, phrase_end_date.month, phrase_end_date.day)
+phrase_start_date = observation_datetime - timedelta(days=APPROXIMATIVE_MOON_REVOLUTION_DAYS)
+phrase_end_date = observation_datetime + timedelta(days=APPROXIMATIVE_MOON_REVOLUTION_DAYS)
+phrase_start_time = timescale.utc(
+    phrase_start_date.year, phrase_start_date.month, phrase_start_date.day
+)
+phrase_end_time = timescale.utc(phrase_end_date.year, phrase_end_date.month, phrase_end_date.day)
 
 moon_phases = almanac.moon_phases(eph)
 
@@ -110,44 +140,27 @@ for phase_time, phase_identifier in next_phases:
     )
 
 
+# Rising and setting
+
+next_day = observation_datetime + timedelta(days=1)
+next_day_time = timescale.utc(next_day)
+rs_almanac = almanac.risings_and_settings(eph, moon, observer_topos)
+rs_times, rs_moments = almanac.find_discrete(observation_time, next_day_time, rs_almanac)
+
+
 # JSON build
 
-dumps = json.dumps(
-    {
-        "right_ascension": {
-            "hms": {"value": ra.hstr(), "unit": None},
-            "dms": {"value": ra.dstr(warn=False), "unit": None},
-            "deg": {"value": ra._degrees, "unit": DEGREE_SYMBOL},
-            "rad": {"value": ra.radians, "unit": RADIAN_SYMBOL},
-        },
-        "declination": {
-            "hms": {"value": dec.hstr(warn=False), "unit": None},
-            "dms": {"value": dec.dstr(), "unit": None},
-            "deg": {"value": dec._degrees, "unit": DEGREE_SYMBOL},
-            "rad": {"value": dec.radians, "unit": RADIAN_SYMBOL},
-        },
-        "elevation": {
-            "hms": {"value": alt.hstr(warn=False), "unit": None},
-            "dms": {"value": alt.dstr(), "unit": None},
-            "deg": {"value": alt._degrees, "unit": DEGREE_SYMBOL},
-            "rad": {"value": alt.radians, "unit": RADIAN_SYMBOL},
-        },
-        "azimuth": {
-            "hms": {"value": az.hstr(warn=False), "unit": None},
-            "dms": {"value": az.dstr(), "unit": None},
-            "deg": {"value": az._degrees, "unit": DEGREE_SYMBOL},
-            "rad": {"value": az.radians, "unit": RADIAN_SYMBOL},
-        },
-        "distance": {
-            "au": {"value": distance.au, "unit": "au"},
-            "m": {"value": distance.m, "unit": "m"},
-        },
-        "current_phase": {"deg": {"value": current_phase, "unit": DEGREE_SYMBOL},},
-        "phases": moon_phases,
-    },
-    indent=2,
-    default=json_converter,
-    ensure_ascii=False,
-)
+data = detailled_coordinates(ra, dec, alt, az, dist)
+
+for rs_time, rs_moment in zip(rs_times, rs_moments):
+    rs_apparent = observer_location.at(rs_time).observe(moon).apparent()
+    rs_ra, rs_dec, rs_dist = rs_apparent.radec()
+    rs_alt, rs_az, _ = rs_apparent.altaz()
+    rs_coordinates = data = detailled_coordinates(rs_ra, rs_dec, rs_alt, rs_az, rs_dist)
+    moment_name = "rises" if rs_moment else "sets"
+    data[moment_name] = {**rs_coordinates, "datetime": rs_time.utc_datetime()}
+
+
+dumps = json.dumps(data, indent=2, default=json_converter, ensure_ascii=False,)
 
 print(dumps)
