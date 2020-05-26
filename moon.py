@@ -5,18 +5,19 @@
 # --datetime "2020-05-11 14:00:00"
 
 import argparse
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 
-# import math
-# from astroquery.jplhorizons import Horizons
-# from astropy.coordinates import Angle
 from skyfield.api import Topos, load, utc
+from skyfield import almanac
 
 DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 COORDINATES_PRECISION = 4
 DEGREE_SYMBOL = "°"
 RADIAN_SYMBOL = "rad"
+MOON_TOTAL_PHASE_ANGLE = 360.0
+APPROXIMATIVE_MOON_REVOLUTION_DAYS = 30
+NEW_MOON_IDENTIFIER = 0
 
 
 def default_json_converter(obj):
@@ -37,16 +38,79 @@ obersation_time = datetime.strptime(args.datetime, DATETIME_FORMAT).replace(tzin
 t = ts.utc(obersation_time)
 
 eph = load("de421.bsp")
-earth, moon = eph["earth"], eph["moon"]
+sun, earth, moon = eph["sun"], eph["earth"], eph["moon"]
 
 observer_location = earth + Topos(
     latitude_degrees=round(float(args.latitude), COORDINATES_PRECISION),
     longitude_degrees=round(float(args.longitude), COORDINATES_PRECISION),
     elevation_m=int(args.elevation),
 )
+position = observer_location.at(t)
 apparent_observation = observer_location.at(t).observe(moon).apparent()
+
+
+# Coordinates
+
 ra, dec, distance = apparent_observation.radec()
 alt, az, _ = apparent_observation.altaz()
+
+
+# Current phase
+
+_, sun_ecliptic_longitude, _ = observer_location.at(t).observe(sun).apparent().ecliptic_latlon()
+_, moon_ecliptic_latitude, _ = apparent_observation.ecliptic_latlon()
+current_phase = (
+    moon_ecliptic_latitude.degrees - sun_ecliptic_longitude.degrees
+) % MOON_TOTAL_PHASE_ANGLE
+
+
+# Phases
+
+observation_date = datetime.strptime(args.datetime, DATETIME_FORMAT).replace(tzinfo=utc)
+phrase_start_date = observation_date - timedelta(days=APPROXIMATIVE_MOON_REVOLUTION_DAYS)
+phrase_end_date = observation_date + timedelta(days=APPROXIMATIVE_MOON_REVOLUTION_DAYS)
+observation_time = ts.utc(observation_date.year, observation_date.month, observation_date.day)
+phrase_start_time = ts.utc(phrase_start_date.year, phrase_start_date.month, phrase_start_date.day)
+phrase_end_time = ts.utc(phrase_end_date.year, phrase_end_date.month, phrase_end_date.day)
+
+moon_phases = almanac.moon_phases(eph)
+
+previous_phases_times, previous_phases_indentifiers = almanac.find_discrete(
+    phrase_start_time, observation_time, moon_phases,
+)
+
+next_phases_times, next_phases_indentifiers = almanac.find_discrete(
+    observation_time, phrase_end_time, moon_phases,
+)
+
+moon_phases = []
+
+previous_phases = zip(reversed(previous_phases_times), reversed(previous_phases_indentifiers))
+previous_new_moon_selected = False
+for phase_time, phase_identifier in previous_phases:
+    if previous_new_moon_selected:
+        break
+    if phase_identifier == NEW_MOON_IDENTIFIER:
+        previous_new_moon_selected = True
+    moon_phases.append(
+        {"name": almanac.MOON_PHASES[phase_identifier], "datetime": phase_time.utc_datetime()}
+    )
+
+moon_phases.reverse()
+
+next_phases = zip(next_phases_times, next_phases_indentifiers)
+next_new_moon_selected = False
+for phase_time, phase_identifier in next_phases:
+    if next_new_moon_selected:
+        break
+    if phase_identifier == NEW_MOON_IDENTIFIER:
+        next_new_moon_selected = True
+    moon_phases.append(
+        {"name": almanac.MOON_PHASES[phase_identifier], "datetime": phase_time.utc_datetime()}
+    )
+
+
+# JSON build
 
 dumps = json.dumps(
     {
@@ -78,6 +142,8 @@ dumps = json.dumps(
             "au": {"value": distance.au, "unit": "au"},
             "m": {"value": distance.m, "unit": "m"},
         },
+        "current_phase": {"deg": {"value": current_phase, "unit": DEGREE_SYMBOL},},
+        "phases": moon_phases,
     },
     indent=2,
     default=default_json_converter,
@@ -85,66 +151,3 @@ dumps = json.dumps(
 )
 
 print(dumps)
-
-
-# def generate_hms_property(prop):
-#     angle = Angle(prop.data[0], prop.unit)
-#     return {
-#         "original": {"value": prop.data[0], "unit": prop.unit.name},
-#         "si": {"value": degree_to_hms(angle), "unit": "hms"},
-#     }
-
-
-# def generate_dms_property(prop):
-#     angle = Angle(prop.data[0], prop.unit)
-#     return {
-#         "original": {"value": prop.data[0], "unit": prop.unit.name},
-#         "si": {"value": degree_to_dms(angle), "unit": "dms"},
-#     }
-
-
-# def generate_deg_property(prop):
-#     return {
-#         "si": {"value": prop.data[0], "unit": prop.unit.name},
-#     }
-
-
-# def degree_to_hms(degree_angle):
-#     h, m, s = degree_angle.hms
-#     return f"{math.floor(h)}h {math.floor(m)}m {math.floor(s)}s"
-
-
-# def degree_to_dms(degree_angle):
-#     d, m, s = degree_angle.dms
-#     return f"{math.floor(d)}° {math.floor(m)}' {math.floor(s)}\""
-
-
-# observer = {"lat": 0, "lon": 0, "elevation": 0}
-
-
-# target = Horizons(
-#     id="301",
-#     location=observer,
-#     id_type="majorbody",
-#     epochs={
-#         "start": "2020-05-11 14:00:00",  # UTC timezone
-#         "stop": "2020-05-11 14:00:01",
-#         "step": "1m",
-#     },
-# )
-
-# eph = target.ephemerides()
-
-# dumps = json.dumps(
-#     {
-#         "right_ascension": generate_hms_property(eph["RA"]),
-#         "declination": generate_dms_property(eph["DEC"]),
-#         "azimuth": generate_deg_property(eph["AZ"]),
-#         "elevation": generate_deg_property(eph["EL"]),
-#     },
-#     indent=2,
-#     default=default_json_converter,
-#     ensure_ascii=False,
-# )
-
-# print(dumps)
