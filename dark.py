@@ -1,7 +1,7 @@
 # coding: utf-8
 
 # Usage:
-# python dark.py --latitude 48.8638 --longitude 2.4485 --elevation 97
+# python dark.py --latitude 48.8638 --longitude 2.4485 --elevation 97 --date "2020-05-11"
 
 import argparse
 import datetime as dt
@@ -9,6 +9,7 @@ import json
 from skyfield import almanac
 from skyfield.api import Topos, load
 
+DATE_FORMAT = "%Y-%m-%d"
 COORDINATES_PRECISION = 4
 
 
@@ -22,13 +23,14 @@ arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument("--latitude")
 arg_parser.add_argument("--longitude")
 arg_parser.add_argument("--elevation")
+arg_parser.add_argument("--date")
 args = arg_parser.parse_args()
 
 
 # Figure out local midnight
 zone = dt.timezone.utc
-now = dt.datetime.now(tz=zone)
-midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+time = dt.datetime.strptime(args.date, DATE_FORMAT)
+midnight = time.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=zone)
 next_midnight = midnight + dt.timedelta(days=1)
 
 ts = load.timescale(builtin=True)
@@ -46,7 +48,7 @@ times, events = almanac.find_discrete(t0, t1, f)
 twilight_events = []
 
 for t, e in zip(times, events):
-    time = str(t.astimezone(zone))[:16]
+    time = t.astimezone(zone)
     name = almanac.TWILIGHTS[e]
     twilight_events.append({"time": time, "name": name})
 
