@@ -156,9 +156,12 @@ for rs_time, rs_moment in zip(rs_times, rs_moments):
     rs_apparent = observer_location.at(rs_time).observe(moon).apparent()
     rs_ra, rs_dec, rs_dist = rs_apparent.radec()
     rs_alt, rs_az, _ = rs_apparent.altaz()
-    rs_coordinates = data = detailled_coordinates(rs_ra, rs_dec, rs_alt, rs_az, rs_dist)
+    rs_coordinates = detailled_coordinates(rs_ra, rs_dec, rs_alt, rs_az, rs_dist)
     moment_name = "rises" if rs_moment else "sets"
     data[moment_name] = {**rs_coordinates, "datetime": rs_time.utc_datetime()}
+
+data["current_phase"] = current_phase
+data["phases"] = moon_phases
 
 
 dumps = json.dumps(data, indent=2, default=json_converter, ensure_ascii=False,)
