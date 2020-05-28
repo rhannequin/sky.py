@@ -7,7 +7,7 @@
 import argparse
 from datetime import datetime, timedelta
 import json
-from skyfield.api import Topos, load, utc
+from skyfield.api import Topos, load, utc, position_from_radec, load_constellation_map
 from skyfield import almanac
 from utils.json_converter import json_converter
 
@@ -148,6 +148,13 @@ rs_almanac = almanac.risings_and_settings(eph, moon, observer_topos)
 rs_times, rs_moments = almanac.find_discrete(observation_time, next_day_time, rs_almanac)
 
 
+# Constellation
+
+constellation_at = load_constellation_map()
+moon_position = position_from_radec(ra.hours, dec.degrees)
+current_constellation = constellation_at(moon_position)
+
+
 # JSON build
 
 data = detailled_coordinates(ra, dec, alt, az, dist)
@@ -162,6 +169,7 @@ for rs_time, rs_moment in zip(rs_times, rs_moments):
 
 data["current_phase"] = current_phase
 data["phases"] = moon_phases
+data["constellation"] = current_constellation
 
 
 dumps = json.dumps(data, indent=2, default=json_converter, ensure_ascii=False,)
