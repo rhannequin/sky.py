@@ -10,11 +10,12 @@ import json
 from skyfield.api import Topos, load, utc, position_from_radec, load_constellation_map
 from skyfield import almanac
 from utils.json_converter import json_converter
+from utils.right_ascension_presenter import right_ascension_presenter
+from utils.declination_presenter import declination_presenter
+from utils.elevation_presenter import elevation_presenter
+from utils.azimuth_presenter import azimuth_presenter
+import utils.constants
 
-DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
-COORDINATES_PRECISION = 4
-DEGREE_SYMBOL = "°"
-RADIAN_SYMBOL = "rad"
 MOON_TOTAL_PHASE_ANGLE = 360.0
 APPROXIMATIVE_MOON_REVOLUTION_DAYS = 30
 NEW_MOON_IDENTIFIER = 0
@@ -22,30 +23,10 @@ NEW_MOON_IDENTIFIER = 0
 
 def detailled_coordinates(right_ascension, declination, elevation, azimuth, distance):
     return {
-        "right_ascension": {
-            "hms": {"value": right_ascension.hstr(), "unit": None},
-            "dms": {"value": right_ascension.dstr(warn=False), "unit": None},
-            "deg": {"value": right_ascension._degrees, "unit": DEGREE_SYMBOL},
-            "rad": {"value": right_ascension.radians, "unit": RADIAN_SYMBOL},
-        },
-        "declination": {
-            "hms": {"value": declination.hstr(warn=False), "unit": None},
-            "dms": {"value": declination.dstr(), "unit": None},
-            "deg": {"value": declination._degrees, "unit": DEGREE_SYMBOL},
-            "rad": {"value": declination.radians, "unit": RADIAN_SYMBOL},
-        },
-        "elevation": {
-            "hms": {"value": elevation.hstr(warn=False), "unit": None},
-            "dms": {"value": elevation.dstr(), "unit": None},
-            "deg": {"value": elevation._degrees, "unit": DEGREE_SYMBOL},
-            "rad": {"value": elevation.radians, "unit": RADIAN_SYMBOL},
-        },
-        "azimuth": {
-            "hms": {"value": azimuth.hstr(warn=False), "unit": None},
-            "dms": {"value": azimuth.dstr(), "unit": None},
-            "deg": {"value": azimuth._degrees, "unit": DEGREE_SYMBOL},
-            "rad": {"value": azimuth.radians, "unit": RADIAN_SYMBOL},
-        },
+        "right_ascension": right_ascension_presenter(right_ascension),
+        "declination": declination_presenter(declination),
+        "elevation": elevation_presenter(elevation),
+        "azimuth": azimuth_presenter(azimuth),
         "distance": {
             "au": {"value": distance.au, "unit": "au"},
             "m": {"value": distance.m, "unit": "m"},
@@ -61,15 +42,17 @@ arg_parser.add_argument("--datetime")
 args = arg_parser.parse_args()
 
 timescale = load.timescale(builtin=True)
-observation_datetime = datetime.strptime(args.datetime, DATETIME_FORMAT).replace(tzinfo=utc)
+observation_datetime = datetime.strptime(args.datetime, utils.constants.DATETIME_FORMAT).replace(
+    tzinfo=utc
+)
 observation_time = timescale.utc(observation_datetime)
 
 eph = load("de421.bsp")
 sun, earth, moon = eph["sun"], eph["earth"], eph["moon"]
 
 observer_topos = Topos(
-    latitude_degrees=round(float(args.latitude), COORDINATES_PRECISION),
-    longitude_degrees=round(float(args.longitude), COORDINATES_PRECISION),
+    latitude_degrees=round(float(args.latitude), utils.constants.COORDINATES_PRECISION),
+    longitude_degrees=round(float(args.longitude), utils.constants.COORDINATES_PRECISION),
     elevation_m=int(args.elevation),
 )
 observer_location = earth + observer_topos

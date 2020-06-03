@@ -9,9 +9,9 @@ import json
 from skyfield import almanac
 from skyfield.api import Topos, load
 from utils.json_converter import json_converter
+import utils.constants
 
 DATE_FORMAT = "%Y-%m-%d"
-COORDINATES_PRECISION = 4
 
 
 arg_parser = argparse.ArgumentParser()
@@ -33,8 +33,8 @@ t0 = ts.utc(midnight)
 t1 = ts.utc(next_midnight)
 eph = load("de421.bsp")
 observer_location = Topos(
-    latitude_degrees=round(float(args.latitude), COORDINATES_PRECISION),
-    longitude_degrees=round(float(args.longitude), COORDINATES_PRECISION),
+    latitude_degrees=round(float(args.latitude), utils.constants.COORDINATES_PRECISION),
+    longitude_degrees=round(float(args.longitude), utils.constants.COORDINATES_PRECISION),
     elevation_m=int(args.elevation),
 )
 f = almanac.dark_twilight_day(eph, observer_location)

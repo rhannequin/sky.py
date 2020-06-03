@@ -10,10 +10,10 @@ import json
 import math
 from astroquery.jplhorizons import Horizons
 from utils.json_converter import json_converter
+import utils.constants
 
 
 AU_IN_M = 149597870700
-DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 DEFAULT_STEP = "1m"
 
 
@@ -24,8 +24,8 @@ arg_parser.add_argument("--location")
 arg_parser.add_argument("--time")
 args = arg_parser.parse_args()
 
-start_time = datetime.strptime(args.time, DATETIME_FORMAT)
-end_time_str = (start_time + timedelta(0, 1)).strftime(DATETIME_FORMAT)
+start_time = datetime.strptime(args.time, utils.constants.DATETIME_FORMAT)
+end_time_str = (start_time + timedelta(0, 1)).strftime(utils.constants.DATETIME_FORMAT)
 
 target = Horizons(
     id=args.target,

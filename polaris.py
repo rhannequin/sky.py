@@ -10,15 +10,14 @@ import json
 from skyfield.api import Angle, Star, Topos, load, utc
 from skyfield.data import hipparcos
 from utils.json_converter import json_converter
+from utils.right_ascension_presenter import right_ascension_presenter
+from utils.declination_presenter import declination_presenter
+import utils.constants
 
 with load.open(hipparcos.URL) as f:
     df = hipparcos.load_dataframe(f)
 
 
-DEGREE_SYMBOL = "°"
-RADIAN_SYMBOL = "rad"
-DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
-COORDINATES_PRECISION = 4
 HYP_POLARIS_IDENTIFIER = 11767
 
 
@@ -37,12 +36,14 @@ eph = load("de421.bsp")
 earth = eph["earth"]
 
 ts = load.timescale(builtin=True)
-observation_datetime = datetime.strptime(args.datetime, DATETIME_FORMAT).replace(tzinfo=utc)
+observation_datetime = datetime.strptime(args.datetime, utils.constants.DATETIME_FORMAT).replace(
+    tzinfo=utc
+)
 observation_time = ts.utc(observation_datetime)
 
 observer_topos = Topos(
-    latitude_degrees=round(float(args.latitude), COORDINATES_PRECISION),
-    longitude_degrees=round(float(args.longitude), COORDINATES_PRECISION),
+    latitude_degrees=round(float(args.latitude), utils.constants.COORDINATES_PRECISION),
+    longitude_degrees=round(float(args.longitude), utils.constants.COORDINATES_PRECISION),
     elevation_m=int(args.elevation),
 )
 observer_location = earth + observer_topos
@@ -54,32 +55,12 @@ hour_angle = Angle(hours=(observation_time.gast - ra.hours).item())
 
 dumps = json.dumps(
     {
-        "right_ascension": {
-            "hms": {"value": ra.hstr(), "unit": None},
-            "dms": {"value": ra.dstr(warn=False), "unit": None},
-            "deg": {"value": ra._degrees, "unit": DEGREE_SYMBOL},
-            "rad": {"value": ra.radians, "unit": RADIAN_SYMBOL},
-        },
-        "declination": {
-            "hms": {"value": dec.hstr(warn=False), "unit": None},
-            "dms": {"value": dec.dstr(), "unit": None},
-            "deg": {"value": dec._degrees, "unit": DEGREE_SYMBOL},
-            "rad": {"value": dec.radians, "unit": RADIAN_SYMBOL},
-        },
+        "right_ascension": right_ascension_presenter(ra),
+        "declination": declination_presenter(dec),
         "hour_angle": hour_angle.hstr(),
         "J2000": {
-            "right_ascension": {
-                "hms": {"value": polaris_ra.hstr(), "unit": None},
-                "dms": {"value": polaris_ra.dstr(warn=False), "unit": None},
-                "deg": {"value": polaris_ra._degrees, "unit": DEGREE_SYMBOL},
-                "rad": {"value": polaris_ra.radians, "unit": RADIAN_SYMBOL},
-            },
-            "declination": {
-                "hms": {"value": polaris_dec.hstr(warn=False), "unit": None},
-                "dms": {"value": polaris_dec.dstr(), "unit": None},
-                "deg": {"value": polaris_dec._degrees, "unit": DEGREE_SYMBOL},
-                "rad": {"value": polaris_dec.radians, "unit": RADIAN_SYMBOL},
-            },
+            "right_ascension": right_ascension_presenter(polaris_ra),
+            "declination": declination_presenter(dec),
         },
     },
     indent=2,
