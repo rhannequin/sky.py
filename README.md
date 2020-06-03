@@ -44,3 +44,29 @@ $ python moon.py --latitude 48.8638 --longitude 2.4485 --elevation 97 --datetime
 - `longitude`: angle in degrees between `-90` and `90`
 - `elevation`: distance in meters from sea level
 - `datetime`: datetime of ephemeris in UTC
+
+## When is it getting dark?
+
+### Usage
+
+```sh
+$ python dark.py --latitude 48.8638 --longitude 2.4485 --elevation 97 --date "2020-05-11"
+```
+
+- `latitude`: angle in degrees between `-90` and `90`
+- `longitude`: angle in degrees between `-90` and `90`
+- `elevation`: distance in meters from sea level
+- `datetime`: date of observation
+
+## α Ursae Minoris data
+
+### Usage
+
+```sh
+$ python polaris.py --latitude 48.8638 --longitude 2.4485 --elevation 97 --datetime "2020-05-11 14:00:00"
+```
+
+- `latitude`: angle in degrees between `-90` and `90`
+- `longitude`: angle in degrees between `-90` and `90`
+- `elevation`: distance in meters from sea level
+- `datetime`: datetime of observation in UTC
