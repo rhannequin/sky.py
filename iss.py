@@ -156,3 +156,86 @@ while not rendered_next_visible:
 
 # Sun altitude -14:46:57.4 => Degrees minutes seconds
 # Sun altitude -0.2580050528049469 => radians
+
+
+# import argparse
+# import datetime as dt
+# import json
+# from skyfield.api import Topos, load, utc
+# from utils.json_converter import json_converter
+# import utils.constants
+
+# ISS_TLE_IDENTIFIER = "ISS (ZARYA)"
+# RISE_EVENT = 0
+# CULMINATE_EVENT = 1
+# SET_EVENT = 2
+
+# arg_parser = argparse.ArgumentParser()
+# arg_parser.add_argument("--latitude")
+# arg_parser.add_argument("--longitude")
+# arg_parser.add_argument("--elevation")
+# arg_parser.add_argument("--start_datetime")
+# arg_parser.add_argument("--end_datetime")
+# arg_parser.add_argument("--step")
+# args = arg_parser.parse_args()
+
+# stations_url = "http://celestrak.com/NORAD/elements/stations.txt"
+# satellites = load.tle_file(stations_url)
+# by_name = {sat.name: sat for sat in satellites}
+# satellite = by_name[ISS_TLE_IDENTIFIER]
+
+# ts = load.timescale(builtin=True)
+# start_time = ts.utc(
+#     dt.datetime.strptime(args.start_datetime, utils.constants.DATETIME_FORMAT).replace(tzinfo=utc)
+# )
+# end_time = ts.utc(
+#     dt.datetime.strptime(args.end_datetime, utils.constants.DATETIME_FORMAT).replace(tzinfo=utc)
+# )
+
+# eph = load("de421.bsp")
+# earth = eph["earth"]
+# observer_topos = Topos(
+#     latitude_degrees=round(float(args.latitude), utils.constants.COORDINATES_PRECISION),
+#     longitude_degrees=round(float(args.longitude), utils.constants.COORDINATES_PRECISION),
+#     elevation_m=int(args.elevation),
+# )
+
+# times, events = satellite.find_events(observer_topos, start_time, end_time, altitude_degrees=10.0)
+# print(times)
+# print(events)
+
+# dumps = {"events": []}
+
+# events_length = len(events)
+# if events_length > 0:
+#     full_passes = []
+#     i = 0
+#     while i < events_length:
+#         if (
+#             (events[i] == RISE_EVENT)
+#             and ((i + 1) < events_length)
+#             and ((i + 2) < events_length)
+#             and (events[i + 1] == CULMINATE_EVENT)
+#             and (events[i + 2] == SET_EVENT)
+#         ):
+#             full_passes.append([times[i], times[i + 1], times[i + 2]])
+#             i += 2
+
+#         i += 1
+
+#     if len(full_passes) > 0:
+#         next_visible_pass = None
+
+#         for full_pass in full_passes:
+#             rise_datetime = full_pass[0].utc_datetime()
+#             thirty_minutes = ts.utc(
+#                 rise_datetime.year,
+#                 rise_datetime.month,
+#                 rise_datetime.day,
+#                 rise_datetime.hour,
+#                 range(0, 30, 1),
+#             )
+#             sunlit = satellite.at(thirty_minutes).is_sunlit(eph)
+#             print(True in sunlit)
+
+# print(json.dumps(dumps, indent=2, default=json_converter,))

@@ -153,3 +153,4 @@ cython_debug/
 *.tf
 *.tpc
 *.dat.gz
+stations.txt
